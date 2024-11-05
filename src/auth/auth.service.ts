@@ -1,23 +1,24 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { User, UserDocument } from '../schemas/user/user.schema';
+import { User } from '../schemas/user/user.schema'; // Adjust the path to your TypeORM User entity
 import { SignUpDto, LoginDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private jwtService: JwtService,
   ) {}
 
   async signUp(signUpDto: SignUpDto): Promise<User> {
-    const { firstName, lastName, pfp, email, password } = signUpDto;
-
+    const { firstName, lastName, profile_picture, email, password } = signUpDto;
+    
     // Check if the user already exists
-    const existingUser = await this.userModel.findOne({ email });
+    const existingUser = await this.userRepository.findOne({ where: { email } });
     if (existingUser) {
       throw new UnauthorizedException('User already exists');
     }
@@ -25,21 +26,22 @@ export class AuthService {
     // Hash password before saving
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = new this.userModel({
+    const newUser = this.userRepository.create({
       email,
       password: hashedPassword,
-      pfp,
+      profile_picture,
       lastName,
       firstName,
     });
-    return newUser.save();
+
+    return this.userRepository.save(newUser);
   }
 
   async signIn(loginDto: LoginDto): Promise<{ accessToken: string }> {
     const { email, password } = loginDto;
 
     // Check if the user exists by email
-    const user = await this.userModel.findOne({ email });
+    const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
       throw new UnauthorizedException('Invalid credentials'); // User not found
     }
@@ -51,11 +53,10 @@ export class AuthService {
     }
 
     // Generate JWT token with user's email and id as the payload
-    const payload = { email: user.email, sub: user._id };
+    const payload = { email: user.email, sub: user.id };
 
-    const accessToken = await this.jwtService.sign(payload, {
-      secret:
-        '8f2a3e2c7b0d5c4e827fcd11d273fb021c973d9e42baff5f8309dcba2e9e7587',
+    const accessToken = this.jwtService.sign(payload, {
+      secret: '8f2a3e2c7b0d5c4e827fcd11d273fb021c973d9e42baff5f8309dcba2e9e7587',
       algorithm: 'HS256',
     });
 

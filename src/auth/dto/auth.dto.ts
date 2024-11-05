@@ -3,7 +3,7 @@ export class SignUpDto {
   lastName: string;
   email: string;
   password: string;
-  pfp: string;
+  profile_picture: string;
   blocked: boolean;
 }
 

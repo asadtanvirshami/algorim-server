@@ -1,27 +1,45 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
+import { Project } from '../project/project.schema';
 
-export type UserDocument = User & Document;
-
-@Schema()
+@Entity()
 export class User {
-  @Prop({ required: true })
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
   firstName: string;
 
-  @Prop({ required: true })
+  @Column()
   lastName: string;
 
-  @Prop({ required: true, unique: true })
+  @Column({ unique: true })
   email: string;
 
-  @Prop({ required: true })
+  @Column()
   password: string;
 
-  @Prop({ required: true })
-  pfp: string ;
+  @Column({ default: 'user' })
+  role: string;
 
-  @Prop({ default:false })
+  @Column({ default: false })
   blocked: boolean;
-}
 
-export const UserSchema = SchemaFactory.createForClass(User);
+  @Column()
+  profile_picture: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @OneToMany(() => Project, (project) => project.user)
+  projects: Project[]; // This establishes the reverse relationship
+}
