@@ -3,7 +3,7 @@ import { Project } from './project.schema';
 
 @Entity()
 export class ProjectInfo {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: number;
 
   @ManyToOne(() => Project, (project) => project.projectInfos, {

@@ -1,4 +1,5 @@
 export class ProjectDto {
+  id:number;
   title: string;
   description: string;
   budget: number;
@@ -6,6 +7,7 @@ export class ProjectDto {
   serial_number: string;
   deadline: Date;
   approved: boolean;
+  userId:string;
 }
 
 export class projectInfoDto {

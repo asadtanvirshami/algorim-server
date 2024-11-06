@@ -4,6 +4,8 @@ import {
   PrimaryGeneratedColumn,
   OneToMany,
   ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Service } from '../services/services.schema';
 import { ProjectInfo } from './project-info.schema';
@@ -12,8 +14,8 @@ import { User } from '../user/user.schema';
 
 @Entity()
 export class Project {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ type: 'varchar', length: 100 })
   title: string;
@@ -49,4 +51,10 @@ export class Project {
     cascade: true,
   })
   milestones: Milestone[];
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

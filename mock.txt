@@ -1,0 +1,56 @@
+// {
+//   "title": "Project Alpha",
+//   "description": "This is a test project for demonstration purposes.",
+//   "budget": 5000.0,
+//   "status": "in progress",
+//   "deadline": "2024-12-31", 
+//   "approved": true,
+//   "userId": "35dc6896-855c-4d56-9f3c-3096c6f710fb"
+//   "services": [
+//     {
+//       "id": 1,
+//       "name": "Web Development",
+//       "description": "Development of responsive websites."
+//     },
+//     {
+//       "id": 2,
+//       "name": "SEO Optimization",
+//       "description": "Optimization for search engines."
+//     }
+//   ],
+//   "projectInfos": [
+//     {
+//       "id": 1,
+//       "code": "INF-001",
+//       "detail": "This is the project information detail."
+//     }
+//   ],
+//   "milestones": [
+//     {
+//       "id": 1,
+//       "title": "Design Phase",
+//       "description": "Complete the design phase of the project.",
+//       "dueDate": "2024-11-15",
+//       "completed": false
+//     },
+//     {
+//       "id": 2,
+//       "title": "Development Phase",
+//       "description": "Start the development phase of the project.",
+//       "dueDate": "2025-01-15",
+//       "completed": false
+//     }
+//   ]
+// }
+// {
+//     "email":"asvdtanvir@gmail.com",
+//     "password":"asad"
+// }
+// {
+//     "firstName":"asad",
+//     "lastName":"asad",
+//     "profile_picture":"",
+//     "email":"asvdtanvir@gmail.com",
+//     "password":"asad",
+//     "blocked":false
+// }

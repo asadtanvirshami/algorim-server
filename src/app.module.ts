@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthModule } from './auth/auth.module';
+import { ProjectModule } from './project/project.module';
 
 import { User } from './schemas/user/user.schema';
 import { Project } from './schemas/project/project.schema';
@@ -30,6 +31,7 @@ import { Milestone } from './schemas/project/milestone.schema';
       entities: [User, Project, ProjectInfo, Service, Milestone],
     }),
     AuthModule,
+    ProjectModule,
   ],
   controllers: [],
 })
