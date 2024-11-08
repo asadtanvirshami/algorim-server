@@ -1,15 +1,6 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Logger,
-  Post,
-  Req,
-  Request,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Logger, Post } from '@nestjs/common';
 import { ProjectService } from './project.service';
-import { ProjectDto, projectInfoDto } from './project.dto';
+import { ProjectDto, projectInfoDto, projectServiceDto } from './project.dto';
 
 @Controller('project')
 export class ProjectController {
@@ -29,5 +20,10 @@ export class ProjectController {
   @Post('create-info')
   async createInfo(@Body() infoDto: projectInfoDto) {
     return this.projectService.createInfo(infoDto);
+  }
+
+  @Post('create-service')
+  async createService(@Body() projectServiceDto: projectServiceDto) {
+    return this.projectService.createService(projectServiceDto);
   }
 }

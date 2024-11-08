@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { Service } from '../services/services.schema';
 import { ProjectInfo } from './project-info.schema';
-import { Milestone } from './milestone.schema';
+import { Milestone } from '../milestone/milestone.schema';
 import { User } from '../user/user.schema';
 
 @Entity()

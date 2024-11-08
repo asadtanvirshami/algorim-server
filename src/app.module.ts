@@ -9,7 +9,8 @@ import { User } from './schemas/user/user.schema';
 import { Project } from './schemas/project/project.schema';
 import { ProjectInfo } from './schemas/project/project-info.schema';
 import { Service } from './schemas/services/services.schema';
-import { Milestone } from './schemas/project/milestone.schema';
+import { Milestone } from './schemas/milestone/milestone.schema';
+import { MilestoneModule } from './milestone/milestone.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { Milestone } from './schemas/project/milestone.schema';
     }),
     AuthModule,
     ProjectModule,
+    MilestoneModule
   ],
   controllers: [],
 })

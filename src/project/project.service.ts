@@ -5,7 +5,7 @@ import {
   ConflictException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { ProjectDto, projectInfoDto } from './project.dto';
+import { ProjectDto, projectInfoDto, projectServiceDto } from './project.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProjectInfo } from 'src/schemas/project/project-info.schema';
 import { Service } from 'src/schemas/services/services.schema';
@@ -57,7 +57,7 @@ export class ProjectService {
     const query: any = {
       where: {},
       order: { createdAt: 'ASC' },
-      relations: ['projectInfos', 'services'],
+      relations: ['projectInfos', 'services', 'milestones'],
     };
 
     if (status) query.where.status = status;
@@ -107,7 +107,151 @@ export class ProjectService {
     }
   }
 
+  async update(projectDto: ProjectDto): Promise<Project> {
+    const { title, description, budget, status, deadline, approved, userId } =
+      projectDto;
+
+    const serial_number = Math.floor(100 + Math.random() * 9000);
+    // Validate serial_number for uniqueness
+    const existingProject = await this.projectRepository.findOne({
+      where: { serial_number: `${serial_number}` },
+    });
+    if (existingProject) {
+      throw new ConflictException(
+        'A project with this serial number already exists.',
+      );
+    }
+
+    // Create a new project instance
+    const newProject = this.projectRepository.create({
+      title,
+      description,
+      budget,
+      status,
+      serial_number: `#${serial_number}`,
+      deadline,
+      approved,
+      user: { id: userId },
+    });
+
+    try {
+      // Save the new project to the database
+      return await this.projectRepository.save(newProject);
+    } catch (error) {
+      // Handle unexpected errors
+      throw new InternalServerErrorException(
+        'Failed to create project. Please try again later.',
+      );
+    }
+  }
+
+  async delete(projectDto: ProjectDto): Promise<Project> {
+    const { title, description, budget, status, deadline, approved, userId } =
+      projectDto;
+
+    const serial_number = Math.floor(100 + Math.random() * 9000);
+    // Validate serial_number for uniqueness
+    const existingProject = await this.projectRepository.findOne({
+      where: { serial_number: `${serial_number}` },
+    });
+    if (existingProject) {
+      throw new ConflictException(
+        'A project with this serial number already exists.',
+      );
+    }
+
+    // Create a new project instance
+    const newProject = this.projectRepository.create({
+      title,
+      description,
+      budget,
+      status,
+      serial_number: `#${serial_number}`,
+      deadline,
+      approved,
+      user: { id: userId },
+    });
+
+    try {
+      // Save the new project to the database
+      return await this.projectRepository.save(newProject);
+    } catch (error) {
+      // Handle unexpected errors
+      throw new InternalServerErrorException(
+        'Failed to create project. Please try again later.',
+      );
+    }
+  }
+
+  async createService(infoDto: projectServiceDto): Promise<Service> {
+    const { service_name, project } = infoDto;
+
+    const addedService = {
+      service_name,
+      project: { id: project },
+    };
+
+    try {
+      const newService = this.serviceRepository.create(addedService);
+      return await this.serviceRepository.save(newService);
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException(
+        'Failed to create or update project info. Please try again later.',
+      );
+    }
+  }
+
   async createInfo(infoDto: projectInfoDto): Promise<ProjectInfo> {
+    const {
+      meeting_link,
+      slack,
+      jira,
+      trello,
+      github,
+      project_manager_name,
+      project_manager_email,
+      project_manager_phone,
+      completion_percentage,
+      note,
+      project,
+    } = infoDto;
+
+    const newInfo = {
+      meeting_link,
+      slack,
+      jira,
+      trello,
+      github,
+      project_manager_name,
+      project_manager_email,
+      project_manager_phone,
+      completion_percentage,
+      note,
+      project: { id: project },
+    };
+
+    try {
+      const infoFounded = await this.infoRepository.findOne({
+        where: { project: { id: project } },
+      });
+
+      if (infoFounded) {
+        await this.infoRepository.update({ project: { id: project } }, newInfo);
+        return infoFounded;
+      } else {
+        const createdInfo = await this.infoRepository.save(newInfo);
+        return createdInfo;
+      }
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException(
+        'Failed to create or update project info. Please try again later.',
+      );
+    }
+  }
+
+  async deleteInfo(infoDto: projectInfoDto): Promise<ProjectInfo> {
     const {
       meeting_link,
       slack,
