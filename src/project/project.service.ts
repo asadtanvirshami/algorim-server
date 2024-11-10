@@ -3,6 +3,7 @@ import { Repository } from 'typeorm';
 import {
   Injectable,
   ConflictException,
+  NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ProjectDto, projectInfoDto, projectServiceDto } from './project.dto';
@@ -107,82 +108,6 @@ export class ProjectService {
     }
   }
 
-  async update(projectDto: ProjectDto): Promise<Project> {
-    const { title, description, budget, status, deadline, approved, userId } =
-      projectDto;
-
-    const serial_number = Math.floor(100 + Math.random() * 9000);
-    // Validate serial_number for uniqueness
-    const existingProject = await this.projectRepository.findOne({
-      where: { serial_number: `${serial_number}` },
-    });
-    if (existingProject) {
-      throw new ConflictException(
-        'A project with this serial number already exists.',
-      );
-    }
-
-    // Create a new project instance
-    const newProject = this.projectRepository.create({
-      title,
-      description,
-      budget,
-      status,
-      serial_number: `#${serial_number}`,
-      deadline,
-      approved,
-      user: { id: userId },
-    });
-
-    try {
-      // Save the new project to the database
-      return await this.projectRepository.save(newProject);
-    } catch (error) {
-      // Handle unexpected errors
-      throw new InternalServerErrorException(
-        'Failed to create project. Please try again later.',
-      );
-    }
-  }
-
-  async delete(projectDto: ProjectDto): Promise<Project> {
-    const { title, description, budget, status, deadline, approved, userId } =
-      projectDto;
-
-    const serial_number = Math.floor(100 + Math.random() * 9000);
-    // Validate serial_number for uniqueness
-    const existingProject = await this.projectRepository.findOne({
-      where: { serial_number: `${serial_number}` },
-    });
-    if (existingProject) {
-      throw new ConflictException(
-        'A project with this serial number already exists.',
-      );
-    }
-
-    // Create a new project instance
-    const newProject = this.projectRepository.create({
-      title,
-      description,
-      budget,
-      status,
-      serial_number: `#${serial_number}`,
-      deadline,
-      approved,
-      user: { id: userId },
-    });
-
-    try {
-      // Save the new project to the database
-      return await this.projectRepository.save(newProject);
-    } catch (error) {
-      // Handle unexpected errors
-      throw new InternalServerErrorException(
-        'Failed to create project. Please try again later.',
-      );
-    }
-  }
-
   async createService(infoDto: projectServiceDto): Promise<Service> {
     const { service_name, project } = infoDto;
 
@@ -250,52 +175,66 @@ export class ProjectService {
       );
     }
   }
+  async deleteProject(projectId: number): Promise<void> {
+    const deleteResult = await this.projectRepository.delete(projectId);
 
-  async deleteInfo(infoDto: projectInfoDto): Promise<ProjectInfo> {
-    const {
-      meeting_link,
-      slack,
-      jira,
-      trello,
-      github,
-      project_manager_name,
-      project_manager_email,
-      project_manager_phone,
-      completion_percentage,
-      note,
-      project,
-    } = infoDto;
+    if (!deleteResult.affected) {
+      throw new NotFoundException(`Project with ID ${projectId} not found.`);
+    }
+  }
 
-    const newInfo = {
-      meeting_link,
-      slack,
-      jira,
-      trello,
-      github,
-      project_manager_name,
-      project_manager_email,
-      project_manager_phone,
-      completion_percentage,
-      note,
-      project: { id: project },
-    };
+  // Delete service
+  async deleteService(serviceId: number): Promise<void> {
+    const deleteResult = await this.serviceRepository.delete(serviceId);
+
+    if (!deleteResult.affected) {
+      throw new NotFoundException(`Service with ID ${serviceId} not found.`);
+    }
+  }
+
+  // Update project
+  async updateProject(projectId, projectDto: ProjectDto): Promise<Project> {
+    const existingProject = await this.projectRepository.findOne(projectId);
+
+    if (!existingProject) {
+      throw new NotFoundException(`Project with ID ${projectId} not found.`);
+    }
+
+    const updatedProject = this.projectRepository.merge(
+      existingProject,
+      projectDto,
+    );
 
     try {
-      const infoFounded = await this.infoRepository.findOne({
-        where: { project: { id: project } },
-      });
-
-      if (infoFounded) {
-        await this.infoRepository.update({ project: { id: project } }, newInfo);
-        return infoFounded;
-      } else {
-        const createdInfo = await this.infoRepository.save(newInfo);
-        return createdInfo;
-      }
+      return await this.projectRepository.save(updatedProject);
     } catch (error) {
-      console.error(error);
       throw new InternalServerErrorException(
-        'Failed to create or update project info. Please try again later.',
+        'Failed to update project. Please try again later.',
+      );
+    }
+  }
+
+  // Update service
+  async updateService(
+    serviceId,
+    serviceDto: projectServiceDto,
+  ): Promise<Service> {
+    const existingService = await this.serviceRepository.findOne(serviceId);
+
+    if (!existingService) {
+      throw new NotFoundException(`Service with ID ${serviceId} not found.`);
+    }
+
+    const updatedService = this.serviceRepository.merge(
+      existingService,
+      serviceDto,
+    );
+
+    try {
+      return await this.serviceRepository.save(updatedService);
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to update service. Please try again later.',
       );
     }
   }
