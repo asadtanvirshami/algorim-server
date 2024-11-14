@@ -193,49 +193,49 @@ export class ProjectService {
   }
 
   // Update project
-  async updateProject(projectId, projectDto: ProjectDto): Promise<Project> {
-    const existingProject = await this.projectRepository.findOne(projectId);
+  // async updateProject(projectId, projectDto: ProjectDto): Promise<Project> {
+  //   const existingProject = await this.projectRepository.findOne(projectId);
 
-    if (!existingProject) {
-      throw new NotFoundException(`Project with ID ${projectId} not found.`);
-    }
+  //   if (!existingProject) {
+  //     throw new NotFoundException(`Project with ID ${projectId} not found.`);
+  //   }
 
-    const updatedProject = this.projectRepository.merge(
-      existingProject,
-      projectDto,
-    );
+  //   const updatedProject = this.projectRepository.merge(
+  //     existingProject,
+  //     projectDto,
+  //   );
 
-    try {
-      return await this.projectRepository.save(updatedProject);
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Failed to update project. Please try again later.',
-      );
-    }
-  }
+  //   try {
+  //     return await this.projectRepository.save(updatedProject);
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(
+  //       'Failed to update project. Please try again later.',
+  //     );
+  //   }
+  // }
 
   // Update service
-  async updateService(
-    serviceId,
-    serviceDto: projectServiceDto,
-  ): Promise<Service> {
-    const existingService = await this.serviceRepository.findOne(serviceId);
+  // async updateService(
+  //   serviceId,
+  //   serviceDto: projectServiceDto,
+  // ): Promise<Service> {
+  //   const existingService = await this.serviceRepository.findOne(serviceId);
 
-    if (!existingService) {
-      throw new NotFoundException(`Service with ID ${serviceId} not found.`);
-    }
+  //   if (!existingService) {
+  //     throw new NotFoundException(`Service with ID ${serviceId} not found.`);
+  //   }
 
-    const updatedService = this.serviceRepository.merge(
-      existingService,
-      serviceDto,
-    );
+  //   const updatedService = this.serviceRepository.merge(
+  //     existingService,
+  //     serviceDto,
+  //   );
 
-    try {
-      return await this.serviceRepository.save(updatedService);
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Failed to update service. Please try again later.',
-      );
-    }
-  }
+  //   try {
+  //     return await this.serviceRepository.save(updatedService);
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(
+  //       'Failed to update service. Please try again later.',
+  //     );
+  //   }
+  // }
 }

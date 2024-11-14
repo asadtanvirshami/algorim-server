@@ -31,7 +31,7 @@ export class User {
   @Column({ default: false })
   blocked: boolean;
 
-  @Column()
+  @Column({ default: null })
   profile_picture: string;
 
   @CreateDateColumn()

@@ -8,6 +8,8 @@ export class ProjectDto {
   deadline: Date;
   approved: boolean;
   userId:string;
+  creadtedAt:Date;
+  updatedAt:Date;
 }
 
 export class projectInfoDto {

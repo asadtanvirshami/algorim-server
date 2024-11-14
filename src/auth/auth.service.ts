@@ -14,11 +14,13 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async signUp(signUpDto: SignUpDto): Promise<User> {
+  async signUp(signUpDto: SignUpDto): Promise<{ message: string }> {
     const { firstName, lastName, profile_picture, email, password } = signUpDto;
-    
+
     // Check if the user already exists
-    const existingUser = await this.userRepository.findOne({ where: { email } });
+    const existingUser = await this.userRepository.findOne({
+      where: { email },
+    });
     if (existingUser) {
       throw new UnauthorizedException('User already exists');
     }
@@ -33,15 +35,20 @@ export class AuthService {
       lastName,
       firstName,
     });
+    this.userRepository.save(newUser);
 
-    return this.userRepository.save(newUser);
+    let response = {
+      message: 'success',
+    };
+
+    return response;
   }
 
   async signIn(loginDto: LoginDto): Promise<{ accessToken: string }> {
     const { email, password } = loginDto;
 
     // Check if the user exists by email
-    const user = await this.userRepository.findOne({ where: { email } });
+    const user = await this.userRepository.findOne({ where: { email: email } });
     if (!user) {
       throw new UnauthorizedException('Invalid credentials'); // User not found
     }
@@ -53,14 +60,23 @@ export class AuthService {
     }
 
     // Generate JWT token with user's email and id as the payload
-    const payload = { email: user.email, sub: user.id };
+    const payload = {
+      email: user.email,
+      sub: user.id,
+      username: user.firstName +" "+ user.lastName,
+    };
 
     const accessToken = this.jwtService.sign(payload, {
-      secret: '8f2a3e2c7b0d5c4e827fcd11d273fb021c973d9e42baff5f8309dcba2e9e7587',
+      secret:
+        '8f2a3e2c7b0d5c4e827fcd11d273fb021c973d9e42baff5f8309dcba2e9e7587',
       algorithm: 'HS256',
     });
 
     // Return the generated token
-    return { accessToken };
+    let response = {
+      accessToken,
+      message: 'success',
+    };
+    return response;
   }
 }
