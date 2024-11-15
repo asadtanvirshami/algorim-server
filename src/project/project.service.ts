@@ -51,14 +51,20 @@ export class ProjectService {
     return await this.projectRepository.findOne(query);
   }
 
-  async getAll(projectDto: ProjectDto): Promise<Project[]> {
-    const { status, approved, serial_number } = projectDto;
+  async getAll(
+    projectDto: ProjectDto,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ data: Project[]; total: number }> {
+    const { status, approved, serial_number, userId } = projectDto;
 
     // Define a query object to hold dynamic filters
     const query: any = {
       where: {},
       order: { createdAt: 'ASC' },
       relations: ['projectInfos', 'services', 'milestones'],
+      skip: (page - 1) * limit, // Calculate offset
+      take: limit, // Limit number of records
     };
 
     if (status) query.where.status = status;
@@ -66,10 +72,21 @@ export class ProjectService {
     if (serial_number) {
       query.where['projectInfos.serial_number'] = `#${serial_number}`;
     }
+    if (userId) {
+      query.where['user.id'] = userId; // Assuming user ID is passed for filtering
+    }
 
-    return await this.projectRepository.find(query);
+    // Get data and count for pagination
+    const [data, total] = await this.projectRepository.findAndCount(query);
+
+    // Ensure all data is converted to plain objects
+    const plainData = data.map((item) => JSON.parse(JSON.stringify(item)));
+
+    return {
+      data: plainData,
+      total,
+    };
   }
-
   async create(projectDto: ProjectDto): Promise<Project> {
     const { title, description, budget, status, deadline, approved, userId } =
       projectDto;
