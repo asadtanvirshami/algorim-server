@@ -35,7 +35,7 @@ export class ProjectInfo {
   @Column({ type: 'varchar', nullable: true })
   project_manager_phone: string;
 
-  @Column({ type: 'int', default: 0, nullable: true })
+  @Column({ type: 'float', default: 0, nullable: true })
   completion_percentage: number;
 
   @Column({ type: 'text' })

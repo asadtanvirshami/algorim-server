@@ -54,32 +54,33 @@ export class ProjectService {
   async getAll(
     projectDto: ProjectDto,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 8,
   ): Promise<{ data: Project[]; total: number }> {
     const { status, approved, serial_number, userId } = projectDto;
 
-    // Define a query object to hold dynamic filters
+    // Build the query object dynamically for filtering and ordering
     const query: any = {
       where: {},
-      order: { createdAt: 'ASC' },
-      relations: ['projectInfos', 'services', 'milestones'],
-      skip: (page - 1) * limit, // Calculate offset
-      take: limit, // Limit number of records
+      order: { createdAt: 'ASC' }, // Default order by createdAt ASC
+      relations: ['projectInfos', 'services', 'milestones'], // Join necessary relations
+      skip: (page - 1) * limit, // Calculate the offset for pagination (page - 1 to make it zero-based)
+      take: limit, // Limit the number of records returned
     };
 
+    // Add filters based on the provided parameters
     if (status) query.where.status = status;
     if (approved !== undefined) query.where.approved = approved;
     if (serial_number) {
       query.where['projectInfos.serial_number'] = `#${serial_number}`;
     }
     if (userId) {
-      query.where['user.id'] = userId; // Assuming user ID is passed for filtering
+      query.where['user.id'] = userId; // Assuming `userId` is used for filtering by user
     }
 
-    // Get data and count for pagination
+    // Query the database and get both the data and the total count for pagination
     const [data, total] = await this.projectRepository.findAndCount(query);
 
-    // Ensure all data is converted to plain objects
+    // Convert data to plain objects (if needed) for easier manipulation in the response
     const plainData = data.map((item) => JSON.parse(JSON.stringify(item)));
 
     return {
