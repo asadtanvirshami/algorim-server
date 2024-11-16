@@ -1,22 +1,27 @@
+interface Link {
+  url: string;
+  description: string;
+}
+
+
 export class ProjectDto {
-  id:number;
+  id: number;
   title: string;
   description: string;
   budget: number;
   status: string;
   serial_number: string;
   deadline: Date;
+  start_date:Date;
+  end_date:Date;
   approved: boolean;
-  userId:string;
-  creadtedAt:Date;
-  updatedAt:Date;
+  userId: string;
+  creadtedAt: Date;
+  updatedAt: Date;
 }
 
 export class projectInfoDto {
-  slack: string;
-  jira: string;
-  trello: string;
-  github: string;
+  links: Link[]; 
   meeting_link: string;
   project_manager_email: string;
   project_manager_name: string;

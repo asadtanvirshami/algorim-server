@@ -20,6 +20,11 @@ export class ProjectController {
     return this.projectService.getAll(projectDto, page, limit);
   }
 
+  @Get('get-one')
+  async getOne(@Query() projectDto: ProjectDto) {
+    return this.projectService.getOne(projectDto);
+  }
+
   @Post('create')
   async create(@Body() projectDto: ProjectDto) {
     const project = await this.projectService.create(projectDto);

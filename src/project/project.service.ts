@@ -1,5 +1,5 @@
 import { Project } from 'src/schemas/project/project.schema';
-import { Repository } from 'typeorm';
+import { FindOneOptions, Repository } from 'typeorm';
 import {
   Injectable,
   ConflictException,
@@ -23,30 +23,17 @@ export class ProjectService {
   ) {}
 
   async getOne(projectDto: ProjectDto): Promise<Project | null> {
-    const { status, approved, serial_number } = projectDto;
+    const { id } = projectDto;
 
-    // Define a query object to hold dynamic filters
-    const query: any = {
-      order: [['createdAt', 'ASC']],
-      include: [
-        {
-          model: ProjectInfo,
-          where: {},
-          include: [{ model: Service }],
-        },
-      ],
+    // Define base query with relations and sorting
+    const query: FindOneOptions<Project> = {
+      where: {},
+      order: { createdAt: 'ASC' as 'ASC' },
+      relations: ['projectInfos', 'services', 'milestones'], // Directly include relations
     };
 
-    // Apply filters based on the provided fields
-    if (status) query.where = { ...query.where, status };
-    if (approved !== undefined) query.where = { ...query.where, approved };
-    if (serial_number) {
-      query.include[0].where = {
-        ...query.include[0].where,
-        serial_number: `#${serial_number}`,
-      };
-    }
-
+    // Add filters dynamically
+    query.where['id'] = id;
     // Retrieve and return a single project matching the filters
     return await this.projectRepository.findOne(query);
   }
@@ -89,8 +76,17 @@ export class ProjectService {
     };
   }
   async create(projectDto: ProjectDto): Promise<Project> {
-    const { title, description, budget, status, deadline, approved, userId } =
-      projectDto;
+    const {
+      title,
+      description,
+      budget,
+      status,
+      deadline,
+      approved,
+      userId,
+      start_date,
+      end_date,
+    } = projectDto;
 
     const serial_number = Math.floor(100 + Math.random() * 9000);
     // Validate serial_number for uniqueness
@@ -112,6 +108,8 @@ export class ProjectService {
       serial_number: `#${serial_number}`,
       deadline,
       approved,
+      start_date,
+      end_date,
       user: { id: userId },
     });
 
@@ -148,24 +146,19 @@ export class ProjectService {
   async createInfo(infoDto: projectInfoDto): Promise<ProjectInfo> {
     const {
       meeting_link,
-      slack,
-      jira,
-      trello,
-      github,
       project_manager_name,
       project_manager_email,
       project_manager_phone,
       completion_percentage,
       note,
+      links,
       project,
     } = infoDto;
 
-    const newInfo = {
+    // Construct the new ProjectInfo object
+    const newInfo: Partial<any> = {
       meeting_link,
-      slack,
-      jira,
-      trello,
-      github,
+      links: links,
       project_manager_name,
       project_manager_email,
       project_manager_phone,
@@ -175,24 +168,27 @@ export class ProjectService {
     };
 
     try {
-      const infoFounded = await this.infoRepository.findOne({
+      // Check if the ProjectInfo already exists for the given project
+      const existingInfo = await this.infoRepository.findOne({
         where: { project: { id: project } },
       });
 
-      if (infoFounded) {
+      if (existingInfo) {
+        // Update the existing ProjectInfo
         await this.infoRepository.update({ project: { id: project } }, newInfo);
-        return infoFounded;
-      } else {
-        const createdInfo = await this.infoRepository.save(newInfo);
-        return createdInfo;
+        return { ...existingInfo, ...newInfo }; // Return updated info
       }
+
+      // Create a new ProjectInfo if none exists
+      return await this.infoRepository.save(newInfo);
     } catch (error) {
-      console.error(error);
+      console.error(`Error in createInfo: ${error.message}`, error);
       throw new InternalServerErrorException(
         'Failed to create or update project info. Please try again later.',
       );
     }
   }
+
   async deleteProject(projectId: number): Promise<void> {
     const deleteResult = await this.projectRepository.delete(projectId);
 

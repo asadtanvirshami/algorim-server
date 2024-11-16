@@ -29,6 +29,9 @@ export class Project {
   @Column({ type: 'varchar', default: 'on hold' })
   status: string;
 
+  @Column({ type: 'varchar', default: 'on hold' })
+  phase: string;
+
   @Column({ type: 'varchar', unique: true })
   serial_number: string;
 
@@ -37,6 +40,15 @@ export class Project {
 
   @Column({ type: 'boolean', default: false })
   approved: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  active: boolean;
+
+  @Column({ type: 'date', default: null })
+  start_date: Date;
+
+  @Column({ type: 'date', default: null })
+  end_date: Date;
 
   @ManyToOne(() => User, (user) => user.projects)
   user: User; //

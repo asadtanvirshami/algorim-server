@@ -1,6 +1,10 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 import { Project } from './project.schema';
 
+interface Link {
+  url: string;
+  description: string;
+}
 @Entity()
 export class ProjectInfo {
   @PrimaryGeneratedColumn('uuid')
@@ -14,17 +18,8 @@ export class ProjectInfo {
   @Column({ type: 'varchar', nullable: true })
   meeting_link: string;
 
-  @Column({ type: 'varchar', nullable: true })
-  slack: string;
-
-  @Column({ type: 'varchar', nullable: true })
-  jira: string;
-
-  @Column({ type: 'varchar', nullable: true })
-  trello: string;
-
-  @Column({ type: 'varchar', nullable: true })
-  github: string;
+  @Column({ type: 'jsonb', nullable: true })
+  links: Link[];
 
   @Column({ type: 'varchar', nullable: true })
   project_manager_name: string;
