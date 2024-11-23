@@ -6,35 +6,27 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { ProjectDto, projectInfoDto, projectServiceDto } from './project.dto';
+import { ProjectDto } from './project.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ProjectInfo } from 'src/schemas/project/project-info.schema';
-import { Service } from 'src/schemas/services/services.schema';
 
 @Injectable()
 export class ProjectService {
   constructor(
     @InjectRepository(Project)
-    private projectRepository: Repository<Project>,
-    @InjectRepository(ProjectInfo)
-    private infoRepository: Repository<ProjectInfo>,
-    @InjectRepository(Service)
-    private serviceRepository: Repository<Service>,
+    private readonly projectRepository: Repository<Project>,
   ) {}
 
   async getOne(projectDto: ProjectDto): Promise<Project | null> {
     const { id } = projectDto;
 
-    // Define base query with relations and sorting
     const query: FindOneOptions<Project> = {
       where: {},
       order: { createdAt: 'ASC' as 'ASC' },
-      relations: ['projectInfos', 'services', 'milestones'], // Directly include relations
+      relations: ['projectInfos', 'services', 'milestones', 'user'],
     };
 
-    // Add filters dynamically
     query.where['id'] = id;
-    // Retrieve and return a single project matching the filters
+
     return await this.projectRepository.findOne(query);
   }
 
@@ -45,29 +37,28 @@ export class ProjectService {
   ): Promise<{ data: Project[]; total: number }> {
     const { status, approved, serial_number, userId } = projectDto;
 
-    // Build the query object dynamically for filtering and ordering
     const query: any = {
       where: {},
-      order: { createdAt: 'ASC' }, // Default order by createdAt ASC
-      relations: ['projectInfos', 'services', 'milestones'], // Join necessary relations
-      skip: (page - 1) * limit, // Calculate the offset for pagination (page - 1 to make it zero-based)
-      take: limit, // Limit the number of records returned
+      order: { createdAt: 'ASC' },
+      relations: ['projectInfos', 'services', 'milestones', 'user'],
+      skip: (page - 1) * limit,
+      take: limit,
     };
 
-    // Add filters based on the provided parameters
+    // Apply filters conditionally
     if (status) query.where.status = status;
     if (approved !== undefined) query.where.approved = approved;
     if (serial_number) {
       query.where['projectInfos.serial_number'] = `#${serial_number}`;
     }
     if (userId) {
-      query.where['user.id'] = userId; // Assuming `userId` is used for filtering by user
+      query.where['user.id'] = userId;
     }
 
-    // Query the database and get both the data and the total count for pagination
+    // Fetch data and count in one query
     const [data, total] = await this.projectRepository.findAndCount(query);
 
-    // Convert data to plain objects (if needed) for easier manipulation in the response
+    // Transform the data if necessary
     const plainData = data.map((item) => JSON.parse(JSON.stringify(item)));
 
     return {
@@ -75,6 +66,7 @@ export class ProjectService {
       total,
     };
   }
+
   async create(projectDto: ProjectDto): Promise<Project> {
     const {
       title,
@@ -114,77 +106,10 @@ export class ProjectService {
     });
 
     try {
-      // Save the new project to the database
       return await this.projectRepository.save(newProject);
     } catch (error) {
-      // Handle unexpected errors
       throw new InternalServerErrorException(
         'Failed to create project. Please try again later.',
-      );
-    }
-  }
-
-  async createService(infoDto: projectServiceDto): Promise<Service> {
-    const { service_name, project } = infoDto;
-
-    const addedService = {
-      service_name,
-      project: { id: project },
-    };
-
-    try {
-      const newService = this.serviceRepository.create(addedService);
-      return await this.serviceRepository.save(newService);
-    } catch (error) {
-      console.error(error);
-      throw new InternalServerErrorException(
-        'Failed to create or update project info. Please try again later.',
-      );
-    }
-  }
-
-  async createInfo(infoDto: projectInfoDto): Promise<ProjectInfo> {
-    const {
-      meeting_link,
-      project_manager_name,
-      project_manager_email,
-      project_manager_phone,
-      completion_percentage,
-      note,
-      links,
-      project,
-    } = infoDto;
-
-    // Construct the new ProjectInfo object
-    const newInfo: Partial<any> = {
-      meeting_link,
-      links: links,
-      project_manager_name,
-      project_manager_email,
-      project_manager_phone,
-      completion_percentage,
-      note,
-      project: { id: project },
-    };
-
-    try {
-      // Check if the ProjectInfo already exists for the given project
-      const existingInfo = await this.infoRepository.findOne({
-        where: { project: { id: project } },
-      });
-
-      if (existingInfo) {
-        // Update the existing ProjectInfo
-        await this.infoRepository.update({ project: { id: project } }, newInfo);
-        return { ...existingInfo, ...newInfo }; // Return updated info
-      }
-
-      // Create a new ProjectInfo if none exists
-      return await this.infoRepository.save(newInfo);
-    } catch (error) {
-      console.error(`Error in createInfo: ${error.message}`, error);
-      throw new InternalServerErrorException(
-        'Failed to create or update project info. Please try again later.',
       );
     }
   }
@@ -197,59 +122,27 @@ export class ProjectService {
     }
   }
 
-  // Delete service
-  async deleteService(serviceId: number): Promise<void> {
-    const deleteResult = await this.serviceRepository.delete(serviceId);
+  async updateProject(
+    projectId: number,
+    projectUpdateDto: Partial<ProjectDto>,
+  ): Promise<Project> {
+    const existingProject = await this.projectRepository.findOne({
+      where: { id: projectId },
+    });
 
-    if (!deleteResult.affected) {
-      throw new NotFoundException(`Service with ID ${serviceId} not found.`);
+    if (!existingProject) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
     }
+
+    const updatedData = {
+      ...existingProject,
+      ...projectUpdateDto,
+      id: projectId,
+    };
+
+    const updatedProject = this.projectRepository.create(updatedData);
+    await this.projectRepository.save(updatedProject);
+
+    return updatedProject;
   }
-
-  // Update project
-  // async updateProject(projectId, projectDto: ProjectDto): Promise<Project> {
-  //   const existingProject = await this.projectRepository.findOne(projectId);
-
-  //   if (!existingProject) {
-  //     throw new NotFoundException(`Project with ID ${projectId} not found.`);
-  //   }
-
-  //   const updatedProject = this.projectRepository.merge(
-  //     existingProject,
-  //     projectDto,
-  //   );
-
-  //   try {
-  //     return await this.projectRepository.save(updatedProject);
-  //   } catch (error) {
-  //     throw new InternalServerErrorException(
-  //       'Failed to update project. Please try again later.',
-  //     );
-  //   }
-  // }
-
-  // Update service
-  // async updateService(
-  //   serviceId,
-  //   serviceDto: projectServiceDto,
-  // ): Promise<Service> {
-  //   const existingService = await this.serviceRepository.findOne(serviceId);
-
-  //   if (!existingService) {
-  //     throw new NotFoundException(`Service with ID ${serviceId} not found.`);
-  //   }
-
-  //   const updatedService = this.serviceRepository.merge(
-  //     existingService,
-  //     serviceDto,
-  //   );
-
-  //   try {
-  //     return await this.serviceRepository.save(updatedService);
-  //   } catch (error) {
-  //     throw new InternalServerErrorException(
-  //       'Failed to update service. Please try again later.',
-  //     );
-  //   }
-  // }
 }

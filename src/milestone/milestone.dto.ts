@@ -1,10 +1,9 @@
 export class MilestoneDto {
-  id:number;
+  id: number;
   title: string;
   description: string;
   amount: number;
   dueDate: Date;
   isCompleted: boolean;
-  project:string;
+  project: number;
 }
-

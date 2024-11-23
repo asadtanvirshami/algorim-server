@@ -15,6 +15,7 @@ export class ProjectDto {
   start_date:Date;
   end_date:Date;
   approved: boolean;
+  phase:string;
   userId: string;
   creadtedAt: Date;
   updatedAt: Date;

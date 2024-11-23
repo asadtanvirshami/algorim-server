@@ -1,6 +1,15 @@
-import { Body, Controller, Get, Logger, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Logger,
+  Param,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { ProjectService } from './project.service';
-import { ProjectDto, projectInfoDto, projectServiceDto } from './project.dto';
+import { ProjectDto } from './project.dto';
 import { EmailService } from '../email/email.service'; // Import EmailService
 
 @Controller('project')
@@ -78,13 +87,11 @@ export class ProjectController {
     return project;
   }
 
-  @Post('create-info')
-  async createInfo(@Body() infoDto: projectInfoDto) {
-    return this.projectService.createInfo(infoDto);
-  }
-
-  @Post('create-service')
-  async createService(@Body() projectServiceDto: projectServiceDto) {
-    return this.projectService.createService(projectServiceDto);
+  @Put('delete/:id')
+  async updateProject(
+    @Param('id') id: number,
+    @Body() updateProjectDto: ProjectDto,
+  ) {
+    return await this.projectService.updateProject(id, updateProjectDto);
   }
 }

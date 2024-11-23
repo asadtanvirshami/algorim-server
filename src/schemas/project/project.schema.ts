@@ -11,11 +11,12 @@ import { Service } from '../services/services.schema';
 import { ProjectInfo } from './project-info.schema';
 import { Milestone } from '../milestone/milestone.schema';
 import { User } from '../user/user.schema';
+import { Document } from '../documents/document.schema';
 
 @Entity()
 export class Project {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id: number;
 
   @Column({ type: 'varchar', length: 100 })
   title: string;
@@ -51,10 +52,13 @@ export class Project {
   end_date: Date;
 
   @ManyToOne(() => User, (user) => user.projects)
-  user: User; //
+  user: User;
 
   @OneToMany(() => Service, (service) => service.project)
   services: Service[];
+
+  @OneToMany(() => Document, (document) => document.project)
+  documents: Document[];
 
   @OneToMany(() => ProjectInfo, (projectInfo) => projectInfo.project)
   projectInfos: ProjectInfo[];

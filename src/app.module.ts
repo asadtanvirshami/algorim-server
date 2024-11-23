@@ -11,7 +11,11 @@ import { User } from './schemas/user/user.schema';
 import { Project } from './schemas/project/project.schema';
 import { ProjectInfo } from './schemas/project/project-info.schema';
 import { Service } from './schemas/services/services.schema';
+import { Document } from './schemas/documents/document.schema';
 import { Milestone } from './schemas/milestone/milestone.schema';
+import { ServiceModule } from './project-service/service.module';
+import { InfoModule } from './project-info/info.module';
+import { DocModule } from './document/document.module';
 
 @Module({
   imports: [
@@ -19,7 +23,7 @@ import { Milestone } from './schemas/milestone/milestone.schema';
     MongooseModule.forRoot(
       'mongodb+srv://asadworkemail:h5qjrZuhnwc1EoNz@cluster0.qy1ig6y.mongodb.net/',
     ),
-    // CockroachDB connection with SSL configuration
+    // CockroachDB connection with SSL configurationn
     TypeOrmModule.forRoot({
       type: 'cockroachdb',
       url: 'postgresql://algorimsoftware:H7TcL3xD21fsOY_k3AHaEQ@sparse-mummy-7987.8nk.gcp-asia-southeast1.cockroachlabs.cloud:26257/defaultdb',
@@ -30,12 +34,15 @@ import { Milestone } from './schemas/milestone/milestone.schema';
         },
       },
       synchronize: true,
-      entities: [User, Project, ProjectInfo, Service, Milestone],
+      entities: [User, Project, ProjectInfo, Service, Milestone, Document],
     }),
     AuthModule,
     ProjectModule,
     MilestoneModule,
     EmailModule,
+    ServiceModule,
+    DocModule,
+    InfoModule,
   ],
   controllers: [],
 })
