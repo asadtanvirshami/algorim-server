@@ -36,3 +36,18 @@ export class projectServiceDto {
   service_name: string;
   project: string;
 }
+
+
+export class UpdateProjectDto {
+  project: any;
+  services: any[];
+  milestones: any[];
+  details: any[];
+  documents: any[];
+  delete: {
+    services: number[];
+    milestones: number[];
+    details: number[];
+    documents: number[];
+  };
+}

@@ -1,5 +1,4 @@
-import { Project } from 'src/schemas/project/project.schema';
-import { FindOneOptions, Repository } from 'typeorm';
+import { FindOneOptions, Repository, DataSource } from 'typeorm';
 import {
   Injectable,
   ConflictException,
@@ -9,11 +8,26 @@ import {
 import { ProjectDto } from './project.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { Project } from 'src/schemas/project/project.schema';
+import { Milestone } from 'src/schemas/milestone/milestone.schema';
+import { ProjectInfo } from 'src/schemas/project/project-info.schema';
+import { Service } from 'src/schemas/services/services.schema';
+import { Document } from 'src/schemas/documents/document.schema';
+
 @Injectable()
 export class ProjectService {
   constructor(
+    private readonly dataSource: DataSource,
     @InjectRepository(Project)
     private readonly projectRepository: Repository<Project>,
+    @InjectRepository(Milestone)
+    private readonly milestonesRepository: Repository<Milestone>,
+    @InjectRepository(ProjectInfo)
+    private readonly projectInfosRepository: Repository<ProjectInfo>,
+    @InjectRepository(Document)
+    private readonly documentsRepository: Repository<Document>,
+    @InjectRepository(Service)
+    private readonly servicesRepository: Repository<Service>,
   ) {}
 
   async getOne(projectDto: ProjectDto): Promise<Project | null> {
@@ -22,7 +36,7 @@ export class ProjectService {
     const query: FindOneOptions<Project> = {
       where: {},
       order: { createdAt: 'ASC' as 'ASC' },
-      relations: ['projectInfos', 'services', 'milestones', 'user'],
+      relations: ['projectInfos', 'services', 'milestones', 'user', 'documents'],
     };
 
     query.where['id'] = id;
@@ -66,7 +80,6 @@ export class ProjectService {
       total,
     };
   }
-
   async create(projectDto: ProjectDto): Promise<Project> {
     const {
       title,
@@ -111,6 +124,69 @@ export class ProjectService {
       throw new InternalServerErrorException(
         'Failed to create project. Please try again later.',
       );
+    }
+  }
+
+  async editProject(data: any) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Destructure data from the input parameter, not the data source
+      const {
+        project,
+        services,
+        milestones,
+        details,
+        documents,
+        delete: toDelete,
+      } = data;
+      console.log(data);
+      
+      // Upsert Project
+      await queryRunner.manager.save(Project, project);
+
+      // Helper function for bulk upsert
+      const bulkUpsert = async (entityClass, items) => {
+        if (Array.isArray(items) && items.length > 0) {
+          await queryRunner.manager.save(entityClass, items);
+        }
+      };
+
+      // Perform bulk upserts
+      await Promise.all([
+        bulkUpsert(Service, services),
+        bulkUpsert(Milestone, milestones),
+        bulkUpsert(ProjectInfo, details),
+        bulkUpsert(Document, documents),
+      ]);
+
+      // Helper function for bulk deletion
+      const bulkDelete = async (entityClass, ids) => {
+        if (Array.isArray(ids) && ids.length > 0) {
+          await queryRunner.manager.delete(entityClass, ids);
+        }
+      };
+
+      // Perform bulk deletions
+      await Promise.all([
+        bulkDelete(Service, toDelete.services),
+        bulkDelete(Milestone, toDelete.milestones),
+        bulkDelete(ProjectInfo, toDelete.details),
+        bulkDelete(Document, toDelete.documents),
+      ]);
+
+      await queryRunner.commitTransaction(); // Commit the transaction
+      return { status: 'success' };
+    } catch (error) {
+      await queryRunner.rollbackTransaction(); // Rollback on error
+      console.error(error);
+      throw new InternalServerErrorException(
+        'Transaction failed: ' + error.message,
+      );
+    } finally {
+      await queryRunner.release(); // Release the query runner
     }
   }
 

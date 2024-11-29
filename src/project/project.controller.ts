@@ -2,11 +2,13 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Logger,
   Param,
   Post,
   Put,
   Query,
+  Res,
 } from '@nestjs/common';
 import { ProjectService } from './project.service';
 import { ProjectDto } from './project.dto';
@@ -25,8 +27,16 @@ export class ProjectController {
     @Query() projectDto: ProjectDto,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 8,
+    @Res() res
   ) {
-    return this.projectService.getAll(projectDto, page, limit);
+    try {
+      const result = await this.projectService.getAll(projectDto, page, limit);
+      return res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ status: 'error', message: error.message });
+    }
   }
 
   @Get('get-one')
@@ -34,10 +44,28 @@ export class ProjectController {
     return this.projectService.getOne(projectDto);
   }
 
-  @Post('create')
-  async create(@Body() projectDto: ProjectDto) {
-    const project = await this.projectService.create(projectDto);
+  @Put('edit')
+  async edit(@Body() body: any, @Res() res) {
+    try {
+      const result = await this.projectService.editProject(body);
+      return res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ status: 'error', message: error.message });
+    }
+  }
 
+  @Post('create')
+  async create(@Body() projectDto: ProjectDto, @Res() res) {
+    try {
+      const result = await this.projectService.create(projectDto);
+      return res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ status: 'error', message: error.message });
+    }
     // // Send an email notification
     // const emailSubject = 'New Project Created';
     // const emailRecipient = 'recipient@example.com'; // Replace with the actual recipient
@@ -83,15 +111,22 @@ export class ProjectController {
     // } catch (error) {
     //   this.logger.error('Failed to send email', error);
     // }
-
-    return project;
   }
 
   @Put('delete/:id')
   async updateProject(
     @Param('id') id: number,
     @Body() updateProjectDto: ProjectDto,
+    @Res() res
   ) {
-    return await this.projectService.updateProject(id, updateProjectDto);
+   
+    try {
+      const result = await this.projectService.updateProject(id, updateProjectDto);
+      return res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ status: 'error', message: error.message });
+    }
   }
 }
