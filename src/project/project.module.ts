@@ -10,6 +10,7 @@ import { ProjectController } from './project.controller';
 import { ProjectService } from './project.service';
 import { Milestone } from 'src/schemas/milestone/milestone.schema';
 import { Document } from 'src/schemas/documents/document.schema';
+import { NotificationGateway } from 'src/notifications/notify.gateway';
 
 @Module({
   imports: [
@@ -17,6 +18,6 @@ import { Document } from 'src/schemas/documents/document.schema';
     EmailModule,
   ],
   controllers: [ProjectController],
-  providers: [ProjectService],
+  providers: [ProjectService, NotificationGateway],
 })
 export class ProjectModule {}

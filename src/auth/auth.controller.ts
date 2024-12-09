@@ -33,9 +33,16 @@ export class AuthController {
     // Log the req.user object
     this.logger.log('User info:', req.user);
 
-    return {
-      message: 'Session is valid',
-      user: req.user, // Contains the user information like id, email, etc.
-    };
+    if (req.user) {
+      return {
+        valid: true,
+        success: true,
+      };
+    } else {
+      return {
+        valid: false,
+        success: false,
+      };
+    }
   }
 }

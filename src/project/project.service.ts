@@ -8,6 +8,8 @@ import {
 import { ProjectDto } from './project.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { NotificationGateway } from 'src/notifications/notify.gateway';
+
 import { Project } from 'src/schemas/project/project.schema';
 import { Milestone } from 'src/schemas/milestone/milestone.schema';
 import { ProjectInfo } from 'src/schemas/project/project-info.schema';
@@ -28,6 +30,7 @@ export class ProjectService {
     private readonly documentsRepository: Repository<Document>,
     @InjectRepository(Service)
     private readonly servicesRepository: Repository<Service>,
+    private readonly notificationGateway: NotificationGateway,
   ) {}
 
   async getOne(projectDto: ProjectDto): Promise<Project | null> {
@@ -36,7 +39,13 @@ export class ProjectService {
     const query: FindOneOptions<Project> = {
       where: {},
       order: { createdAt: 'ASC' as 'ASC' },
-      relations: ['projectInfos', 'services', 'milestones', 'user', 'documents'],
+      relations: [
+        'projectInfos',
+        'services',
+        'milestones',
+        'user',
+        'documents',
+      ],
     };
 
     query.where['id'] = id;
@@ -126,14 +135,12 @@ export class ProjectService {
       );
     }
   }
-
   async editProject(data: any) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // Destructure data from the input parameter, not the data source
       const {
         project,
         services,
@@ -142,24 +149,50 @@ export class ProjectService {
         documents,
         delete: toDelete,
       } = data;
-      console.log(data);
-      
+
+      // Validate project data
+      if (!project || typeof project !== 'object') {
+        throw new Error('Invalid or missing project data');
+      }
+
+      // Fetch the current project from the database
+      const existingProject = await queryRunner.manager.findOne(Project, {
+        where: { id: project.id },
+      });
+
       // Upsert Project
       await queryRunner.manager.save(Project, project);
 
+      // Track changes for notifications
+      const hasStatusChanged =
+        existingProject?.status !== project.status &&
+        project.status !== undefined;
+      const hasApprovalChanged =
+        existingProject?.approved !== project.approved &&
+        project.approved !== undefined;
+      const hasActiveChanged =
+        existingProject?.active !== project.active &&
+        project.active !== undefined;
+      const hasPercentageChanged =
+        Array.isArray(existingProject?.projectInfos) &&
+        existingProject.projectInfos.length > 0 &&
+        existingProject.projectInfos[0].completion_percentage !==
+          project.projectInfos[0].completion_percentage &&
+          project.projectInfos[0]?.completion_percentage !== undefined;
       // Helper function for bulk upsert
       const bulkUpsert = async (entityClass, items) => {
         if (Array.isArray(items) && items.length > 0) {
           await queryRunner.manager.save(entityClass, items);
         }
       };
-
+      console.log(hasPercentageChanged);
+      
       // Perform bulk upserts
       await Promise.all([
-        bulkUpsert(Service, services),
-        bulkUpsert(Milestone, milestones),
-        bulkUpsert(ProjectInfo, details),
-        bulkUpsert(Document, documents),
+        bulkUpsert(Service, services || []),
+        bulkUpsert(Milestone, milestones || []),
+        bulkUpsert(ProjectInfo, details || []),
+        bulkUpsert(Document, documents || []),
       ]);
 
       // Helper function for bulk deletion
@@ -171,17 +204,51 @@ export class ProjectService {
 
       // Perform bulk deletions
       await Promise.all([
-        bulkDelete(Service, toDelete.services),
-        bulkDelete(Milestone, toDelete.milestones),
-        bulkDelete(ProjectInfo, toDelete.details),
-        bulkDelete(Document, toDelete.documents),
+        bulkDelete(Service, toDelete?.services || []),
+        bulkDelete(Milestone, toDelete?.milestones || []),
+        bulkDelete(ProjectInfo, toDelete?.details || []),
+        bulkDelete(Document, toDelete?.documents || []),
       ]);
 
       await queryRunner.commitTransaction(); // Commit the transaction
+
+      // Send real-time updates if specific fields have changed
+      if (hasStatusChanged) {
+        this.notificationGateway.sendProjectUpdate(
+          'status',
+          project.id,
+          project.status,
+        );
+      }
+
+      if (hasApprovalChanged) {
+        this.notificationGateway.sendProjectUpdate(
+          'approval',
+          project.id,
+          project.approved,
+        );
+      }
+
+      if (hasActiveChanged) {
+        this.notificationGateway.sendProjectUpdate(
+          'active',
+          project.id,
+          project.active,
+        );
+      }
+
+      if (hasPercentageChanged) {
+        this.notificationGateway.sendProjectUpdate(
+          'completion',
+          details.id,
+          details.completion_percentage,
+        );
+      }
+
       return { status: 'success' };
     } catch (error) {
       await queryRunner.rollbackTransaction(); // Rollback on error
-      console.error(error);
+      console.error('Transaction error:', error);
       throw new InternalServerErrorException(
         'Transaction failed: ' + error.message,
       );

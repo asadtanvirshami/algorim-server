@@ -16,8 +16,10 @@ import { Milestone } from './schemas/milestone/milestone.schema';
 import { ServiceModule } from './project-service/service.module';
 import { InfoModule } from './project-info/info.module';
 import { DocModule } from './document/document.module';
+import { NotificationGateway } from './notifications/notify.gateway';
 
 @Module({
+  providers: [NotificationGateway],
   imports: [
     // MongoDB connection
     MongooseModule.forRoot(
