@@ -3,6 +3,17 @@ interface Link {
   description: string;
 }
 
+export class ProjectCreationDto {
+  id: number;
+  title: string;
+  description: string;
+  budget: number;
+  deadline:string;
+  services: [{ name: '' }];
+  userId: string;
+  creadtedAt: Date;
+  updatedAt: Date;
+}
 
 export class ProjectDto {
   id: number;
@@ -12,17 +23,17 @@ export class ProjectDto {
   status: string;
   serial_number: string;
   deadline: Date;
-  start_date:Date;
-  end_date:Date;
+  start_date: Date;
+  end_date: Date;
   approved: boolean;
-  phase:string;
+  phase: string;
   userId: string;
   creadtedAt: Date;
   updatedAt: Date;
 }
 
 export class projectInfoDto {
-  links: Link[]; 
+  links: Link[];
   meeting_link: string;
   project_manager_email: string;
   project_manager_name: string;
@@ -36,7 +47,6 @@ export class projectServiceDto {
   service_name: string;
   project: string;
 }
-
 
 export class UpdateProjectDto {
   project: any;

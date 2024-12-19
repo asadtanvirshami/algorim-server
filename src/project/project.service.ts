@@ -5,7 +5,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { ProjectDto } from './project.dto';
+import { ProjectCreationDto, ProjectDto } from './project.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { NotificationGateway } from 'src/notifications/notify.gateway';
@@ -15,6 +15,8 @@ import { Milestone } from 'src/schemas/milestone/milestone.schema';
 import { ProjectInfo } from 'src/schemas/project/project-info.schema';
 import { Service } from 'src/schemas/services/services.schema';
 import { Document } from 'src/schemas/documents/document.schema';
+import { User } from 'src/schemas/user/user.schema';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class ProjectService {
@@ -28,9 +30,12 @@ export class ProjectService {
     private readonly projectInfosRepository: Repository<ProjectInfo>,
     @InjectRepository(Document)
     private readonly documentsRepository: Repository<Document>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     @InjectRepository(Service)
     private readonly servicesRepository: Repository<Service>,
     private readonly notificationGateway: NotificationGateway,
+    private readonly emailService: EmailService,
   ) {}
 
   async getOne(projectDto: ProjectDto): Promise<Project | null> {
@@ -89,18 +94,10 @@ export class ProjectService {
       total,
     };
   }
-  async create(projectDto: ProjectDto): Promise<Project> {
-    const {
-      title,
-      description,
-      budget,
-      status,
-      deadline,
-      approved,
-      userId,
-      start_date,
-      end_date,
-    } = projectDto;
+  async create(projectDto: ProjectCreationDto): Promise<Project> {
+    const { title, description, budget, services, userId, deadline } =
+      projectDto;
+    console.log(projectDto);
 
     const serial_number = Math.floor(100 + Math.random() * 9000);
     // Validate serial_number for uniqueness
@@ -114,21 +111,70 @@ export class ProjectService {
     }
 
     // Create a new project instance
-    const newProject = this.projectRepository.create({
+    const newProject = await this.projectRepository.create({
       title,
       description,
       budget,
-      status,
-      serial_number: `#${serial_number}`,
       deadline,
-      approved,
-      start_date,
-      end_date,
+      serial_number: `#${serial_number}`,
       user: { id: userId },
     });
+    if (newProject) {
+      const savedProject = await this.projectRepository.save(newProject);
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      await Promise.all(
+        services.map((service) => {
+          this.servicesRepository.insert({
+            service_name: service?.name,
+            project: { id: savedProject?.id },
+          });
+        }),
+      );
+      if (user) {
+        const emailSubject = newProject?.title;
+        const emailRecipient = `${user?.email}`; // Replace with the actual recipient
+        const emailText = `A new project titled "${newProject.title}" has been created successfully.`;
+        const emailHtml = `<p>Dear Esteemed Customer,</p>
+        <p>We are pleased to inform you that we have received your project submission successfully. Your project has been assigned the code <strong>${newProject.serial_number}</strong>. Our dedicated team will meticulously review the provided details.</p>
+        <p>Below is a summary of the project details:</p>
+        <table style="border-collapse: collapse; width: 100%;">
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 8px;">Title</th>
+            <td style="border: 1px solid #ddd; padding: 8px;">${newProject.title}</td>
+          </tr>
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 8px;">Deadline</th>
+            <td style="border: 1px solid #ddd; padding: 8px;">${newProject.deadline}</td>
+          </tr>
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 8px;">Budget</th>
+            <td style="border: 1px solid #ddd; padding: 8px;">${newProject.budget}</td>
+          </tr>
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 8px;">code</th>
+            <td style="border: 1px solid #ddd; padding: 8px;">${newProject.serial_number}</td>
+          </tr>
+        </table>
+        <p>Rest assured, we will keep you updated on the progress of the review process. Your satisfaction is our utmost priority.</p>
+        <p>Thank you for selecting Algorim. We eagerly anticipate the opportunity to collaborate with you!</p>
+        <p>Best Regards,</p>
+        <p>The Algorim Team</p>`;
 
+        try {
+          await this.emailService.sendEmail(
+            emailRecipient,
+            emailSubject,
+            emailText,
+            emailHtml,
+          );
+          console.log('Email sent successfully');
+        } catch (error) {
+          console.log('Failed to send email', error);
+        }
+      }
+    }
     try {
-      return await this.projectRepository.save(newProject);
+      return newProject;
     } catch (error) {
       throw new InternalServerErrorException(
         'Failed to create project. Please try again later.',
@@ -178,7 +224,7 @@ export class ProjectService {
         existingProject.projectInfos.length > 0 &&
         existingProject.projectInfos[0].completion_percentage !==
           project.projectInfos[0].completion_percentage &&
-          project.projectInfos[0]?.completion_percentage !== undefined;
+        project.projectInfos[0]?.completion_percentage !== undefined;
       // Helper function for bulk upsert
       const bulkUpsert = async (entityClass, items) => {
         if (Array.isArray(items) && items.length > 0) {
@@ -186,7 +232,7 @@ export class ProjectService {
         }
       };
       console.log(hasPercentageChanged);
-      
+
       // Perform bulk upserts
       await Promise.all([
         bulkUpsert(Service, services || []),

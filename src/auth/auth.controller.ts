@@ -27,6 +27,11 @@ export class AuthController {
     return this.authService.signIn(loginDto);
   }
 
+  @Post('google-signin')
+  async googleSignin(@Body() loginDto: LoginDto) {
+    return this.authService.signIn(loginDto);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('verify-session')
   verifySession(@Request() req) {

@@ -20,7 +20,7 @@ export class EmailService {
   // Function to send email
   async sendEmail(to: string, subject: string, text: string, html: string) {
     const mailOptions = {
-      from: `"Algorim Team" <algorimsoftware@outlook.com>`,
+      from: `"Algorim Team" <team@algorimsoftware.io>`,
       to: to,
       subject: subject,
       text: text,
