@@ -1,4 +1,4 @@
-import { FindOneOptions, Repository, DataSource } from 'typeorm';
+import { FindOneOptions, Repository, DataSource, QueryRunner } from 'typeorm';
 import {
   Injectable,
   ConflictException,
@@ -17,6 +17,7 @@ import { Service } from 'src/schemas/services/services.schema';
 import { Document } from 'src/schemas/documents/document.schema';
 import { User } from 'src/schemas/user/user.schema';
 import { EmailService } from 'src/email/email.service';
+import { Notification } from 'src/schemas/notifications/notification.schema';
 
 @Injectable()
 export class ProjectService {
@@ -34,6 +35,8 @@ export class ProjectService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Service)
     private readonly servicesRepository: Repository<Service>,
+    @InjectRepository(Notification)
+    private readonly notificationRepository: Repository<Notification>,
     private readonly notificationGateway: NotificationGateway,
     private readonly emailService: EmailService,
   ) {}
@@ -182,7 +185,7 @@ export class ProjectService {
     }
   }
   async editProject(data: any) {
-    const queryRunner = this.dataSource.createQueryRunner();
+    const queryRunner: QueryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
@@ -206,6 +209,10 @@ export class ProjectService {
         where: { id: project.id },
       });
 
+      const user = await this.userRepository.findOne({
+        where: { id: project.user.id },
+      });
+
       // Upsert Project
       await queryRunner.manager.save(Project, project);
 
@@ -223,15 +230,15 @@ export class ProjectService {
         Array.isArray(existingProject?.projectInfos) &&
         existingProject.projectInfos.length > 0 &&
         existingProject.projectInfos[0].completion_percentage !==
-          project.projectInfos[0].completion_percentage &&
+          project.projectInfos[0]?.completion_percentage &&
         project.projectInfos[0]?.completion_percentage !== undefined;
+
       // Helper function for bulk upsert
       const bulkUpsert = async (entityClass, items) => {
         if (Array.isArray(items) && items.length > 0) {
           await queryRunner.manager.save(entityClass, items);
         }
       };
-      console.log(hasPercentageChanged);
 
       // Perform bulk upserts
       await Promise.all([
@@ -256,40 +263,18 @@ export class ProjectService {
         bulkDelete(Document, toDelete?.documents || []),
       ]);
 
+      // Save and send notifications after data is saved
+      await this.handleNotifications(
+        queryRunner,
+        project,
+        user.id,
+        hasStatusChanged,
+        hasApprovalChanged,
+        hasActiveChanged,
+        hasPercentageChanged,
+      );
+
       await queryRunner.commitTransaction(); // Commit the transaction
-
-      // Send real-time updates if specific fields have changed
-      if (hasStatusChanged) {
-        this.notificationGateway.sendProjectUpdate(
-          'status',
-          project.id,
-          project.status,
-        );
-      }
-
-      if (hasApprovalChanged) {
-        this.notificationGateway.sendProjectUpdate(
-          'approval',
-          project.id,
-          project.approved,
-        );
-      }
-
-      if (hasActiveChanged) {
-        this.notificationGateway.sendProjectUpdate(
-          'active',
-          project.id,
-          project.active,
-        );
-      }
-
-      if (hasPercentageChanged) {
-        this.notificationGateway.sendProjectUpdate(
-          'completion',
-          details.id,
-          details.completion_percentage,
-        );
-      }
 
       return { status: 'success' };
     } catch (error) {
@@ -309,6 +294,70 @@ export class ProjectService {
     if (!deleteResult.affected) {
       throw new NotFoundException(`Project with ID ${projectId} not found.`);
     }
+  }
+
+  private async handleNotifications(
+    queryRunner: QueryRunner,
+    project: any,
+    userId: string,
+    hasStatusChanged: boolean,
+    hasApprovalChanged: boolean,
+    hasActiveChanged: boolean,
+    hasPercentageChanged: boolean,
+  ) {
+    const notifications = [];
+
+    if (hasStatusChanged) {
+      notifications.push({
+        type: 'status',
+        project: project.id,
+        user: userId,
+        value: project.status,
+      });
+    }
+
+    if (hasApprovalChanged) {
+      notifications.push({
+        type: 'approval',
+        project: project.id,
+        user: userId,
+        value: project.approved,
+      });
+    }
+
+    if (hasActiveChanged) {
+      notifications.push({
+        type: 'active',
+        project: project.id,
+        user: userId,
+        value: project.active,
+      });
+    }
+
+    if (hasPercentageChanged) {
+      const completionPercentage =
+        project.projectInfos[0]?.completion_percentage;
+      notifications.push({
+        type: 'completion',
+        project: project.id,
+        user: userId,
+        value: completionPercentage,
+      });
+    }
+
+    // Save notifications to the database
+    if (notifications.length > 0) {
+      await queryRunner.manager.save(Notification, notifications);
+    }
+
+    // Broadcast notifications after saving them to the database
+    notifications.forEach((notification) => {
+      this.notificationGateway.sendProjectUpdate(
+        notification.type,
+        notification.projectId,
+        notification.value,
+      );
+    });
   }
 
   async updateProject(

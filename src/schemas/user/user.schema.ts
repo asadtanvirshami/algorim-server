@@ -7,6 +7,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Project } from '../project/project.schema';
+import { Notification } from '../notifications/notification.schema';
 
 @Entity()
 export class User {
@@ -41,5 +42,10 @@ export class User {
   updatedAt: Date;
 
   @OneToMany(() => Project, (project) => project.user)
-  projects: Project[]; // This establishes the reverse relationship
+  projects: Project[];
+
+  @OneToMany(() => Notification, (notification) => notification.user, {
+    cascade: true,
+  })
+  notification: Notification[];
 }

@@ -12,6 +12,7 @@ import { ProjectInfo } from './project-info.schema';
 import { Milestone } from '../milestone/milestone.schema';
 import { User } from '../user/user.schema';
 import { Document } from '../documents/document.schema';
+import { Notification } from '../notifications/notification.schema';
 
 @Entity()
 export class Project {
@@ -56,6 +57,11 @@ export class Project {
 
   @OneToMany(() => Service, (service) => service.project, { cascade: true })
   services: Service[];
+
+  @OneToMany(() => Notification, (notification) => notification.project, {
+    cascade: true,
+  })
+  notification: Notification[];
 
   @OneToMany(() => Document, (document) => document.project)
   documents: Document[];

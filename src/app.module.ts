@@ -17,6 +17,8 @@ import { ServiceModule } from './project-service/service.module';
 import { InfoModule } from './project-info/info.module';
 import { DocModule } from './document/document.module';
 import { NotificationGateway } from './notifications/notify.gateway';
+import { NotificationModule } from './notifications/notification.module';
+import { Notification } from './schemas/notifications/notification.schema';
 
 @Module({
   providers: [NotificationGateway],
@@ -36,7 +38,7 @@ import { NotificationGateway } from './notifications/notify.gateway';
         },
       },
       synchronize: true,
-      entities: [User, Project, ProjectInfo, Service, Milestone, Document],
+      entities: [User, Project,Notification, ProjectInfo, Service, Milestone, Document],
     }),
     AuthModule,
     ProjectModule,
@@ -45,6 +47,7 @@ import { NotificationGateway } from './notifications/notify.gateway';
     ServiceModule,
     DocModule,
     InfoModule,
+    NotificationModule
   ],
   controllers: [],
 })

@@ -11,6 +11,7 @@ import { Milestone } from 'src/schemas/milestone/milestone.schema';
 import { Document } from 'src/schemas/documents/document.schema';
 import { NotificationGateway } from 'src/notifications/notify.gateway';
 import { User } from 'src/schemas/user/user.schema';
+import { Notification } from 'src/schemas/notifications/notification.schema';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { User } from 'src/schemas/user/user.schema';
       Document,
       Milestone,
       User,
+      Notification
     ]), // Use TypeORM to manage User entity
     EmailModule,
   ],
