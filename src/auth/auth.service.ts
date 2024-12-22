@@ -63,7 +63,8 @@ export class AuthService {
     const payload = {
       email: user.email,
       sub: user.id,
-      username: user.firstName +" "+ user.lastName,
+      firstName: user.firstName,
+      lastName: user.lastName,
     };
 
     const accessToken = this.jwtService.sign(payload, {
@@ -76,6 +77,78 @@ export class AuthService {
     let response = {
       accessToken,
       message: 'success',
+    };
+    return response;
+  }
+
+  async update(user): Promise<{ user: User; token: string }> {
+    console.log(user, 'ISERR');
+
+    const existingUser = await this.userRepository.findOne({
+      where: { id: user?.id },
+    });
+    if (!existingUser) {
+      throw new UnauthorizedException('Invalid id');
+    }
+
+    const updatedUserData = {
+      ...existingUser,
+      ...user,
+    };
+
+    await this.userRepository.save(updatedUserData);
+
+    let payload = {
+      email: updatedUserData.email,
+      sub: updatedUserData.id,
+      firstName: updatedUserData.firstName,
+      lastName: updatedUserData.lastName,
+    };
+
+    const accessToken = this.jwtService.sign(payload, {
+      secret:
+        '8f2a3e2c7b0d5c4e827fcd11d273fb021c973d9e42baff5f8309dcba2e9e7587',
+      algorithm: 'HS256',
+    });
+
+    return {
+      user: updatedUserData,
+      token: accessToken,
+    };
+  }
+
+  async getUser(id: string): Promise<{ user: User; message: string }> {
+    const user = await this.userRepository.findOne({ where: { id: id } });
+    if (!user) {
+      throw new UnauthorizedException('Invalid id');
+    }
+    let response = {
+      user,
+      message: 'user found',
+    };
+    return response;
+  }
+
+  async resetPassword(
+    oldPassword: string,
+    newPassword: string,
+    id: string,
+  ): Promise<{ message: string }> {
+    const user = await this.userRepository.findOne({ where: { id: id } });
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!user) {
+      throw new UnauthorizedException('Invalid id');
+    }
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials'); // Password mismatch
+    }
+    if (isPasswordValid) {
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+      this.userRepository.save(user);
+    }
+    let response = {
+      message: 'password changed',
     };
     return response;
   }
