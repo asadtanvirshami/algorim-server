@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Post, Get, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Post,
+  Get,
+  Query,
+  Res,
+  HttpStatus,
+} from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { Notification } from '../schemas/notifications/notification.schema';
 import { ProjectDto } from 'src/project/project.dto';
@@ -12,12 +21,22 @@ export class NotificationController {
   ) {}
 
   @Get('get')
-  async get(@Query('userId') id: string): Promise<Notification[]> {
+  async get(
+    @Query('userId') id: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 8,
+    @Body() projectDto: ProjectDto,
+    @Res() res,
+  ) {
     console.log(id, 'id_of_user');
-
-    return this.notificationService.getNotificationsByUserId(id);
+    const result = await this.notificationService.getNotificationsByUserId(
+      id,
+      projectDto,
+      page,
+      limit,
+    );
+    return res.status(HttpStatus.OK).json(result);
   }
-
   @Post('bulk-create')
   async bulkCreateNotifications(
     @Body()

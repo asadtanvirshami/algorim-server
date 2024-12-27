@@ -85,11 +85,7 @@ export class ProjectService {
     if (userId) {
       query.where['user.id'] = userId;
     }
-
-    // Fetch data and count in one query
     const [data, total] = await this.projectRepository.findAndCount(query);
-
-    // Transform the data if necessary
     const plainData = data.map((item) => JSON.parse(JSON.stringify(item)));
 
     return {
@@ -103,7 +99,7 @@ export class ProjectService {
     console.log(projectDto);
 
     const serial_number = Math.floor(100 + Math.random() * 9000);
-    // Validate serial_number for uniqueness
+
     const existingProject = await this.projectRepository.findOne({
       where: { serial_number: `${serial_number}` },
     });
@@ -113,7 +109,6 @@ export class ProjectService {
       );
     }
 
-    // Create a new project instance
     const newProject = await this.projectRepository.create({
       title,
       description,
@@ -199,12 +194,10 @@ export class ProjectService {
         delete: toDelete,
       } = data;
 
-      // Validate project data
       if (!project || typeof project !== 'object') {
         throw new Error('Invalid or missing project data');
       }
 
-      // Fetch the current project from the database
       const existingProject = await queryRunner.manager.findOne(Project, {
         where: { id: project.id },
       });

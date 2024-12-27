@@ -54,11 +54,29 @@ export class NotificationService {
   }
 
   // Get Notifications by User ID
-  async getNotificationsByUserId(userId: string): Promise<Notification[]> {
-    console.log(userId);
-    
-    return this.notificationRepository.find({
-      where: { user: { id: userId } },
-    });
+  async getNotificationsByUserId(
+    userId: any,
+    notificationDto: any,
+    page: number = 1,
+    limit: number = 8,
+  ): Promise<{
+    data: Notification[];
+    total: number;
+  }> {
+    const query: any = {
+      where: {},
+      skip: (page - 1) * limit,
+      take: limit,
+    };
+    if (userId) {
+      query.where['user.id'] = userId;
+    }
+    const [data, total] = await this.notificationRepository.findAndCount(query);
+    const plainData = data.map((item) => JSON.parse(JSON.stringify(item)));
+
+    return {
+      data: plainData,
+      total,
+    };
   }
 }
