@@ -11,6 +11,8 @@ async function bootstrap() {
   // Enable CORS for all origins
   app.enableCors({
     origin:'https://www.algorimsoftware.io/',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'UPDATE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   await app.listen(8080);
